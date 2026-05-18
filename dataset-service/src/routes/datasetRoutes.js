@@ -22,9 +22,11 @@ router.post(
 );
 
 router.get("/", verifyToken, datasetController.getDatasets);
+router.get("/archived", verifyToken, datasetController.getArchivedDatasets);
+router.put("/activate/:id", verifyToken, datasetController.activateDataset);
+router.put("/archive/:id", verifyToken, datasetController.archiveDataset);
 router.get("/:id", verifyToken, datasetController.getDatasetById);
 router.put("/:id", verifyToken, datasetController.updateDataset);
-router.put("/archive/:id", verifyToken, datasetController.archiveDataset);
 router.delete("/:id", verifyToken, datasetController.deleteDataset);
 
 module.exports = router;

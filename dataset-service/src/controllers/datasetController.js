@@ -85,7 +85,7 @@ exports.uploadDataset = async (req, res) => {
     }
 };
 
-// GET ALL DATASETS
+// GET ALL ACTIVE DATASETS
 exports.getDatasets = async (req, res) => {
     try{
         // Take from frontend
@@ -186,6 +186,76 @@ exports.archiveDataset = async (req, res) => {
 
         await logActivity(
             "ARCHIVE_DATASET",
+            `Archived dataset ${dataset.originalName}`,
+            req.user
+        );
+
+        res.status(200).json({
+            message: "Dataset archived successfully",
+        });
+    } catch (error) {
+        res.status(500).json({
+            message: "Error archiving dataset",
+            error: error.message,
+        });
+    }
+}
+
+// GET ALL ARCHIVED DATASET
+exports.getArchivedDatasets = async (req, res) => {
+    try {
+        // Take from frontend
+        const page = parseInt(req.query.page || 1);
+        const limit = parseInt(req.query.limit || 10);
+
+        // Sort
+        const sort = req.query.sort === "asc" ? 1 : -1;
+
+        // Only active datasets
+        const query = {statusDataset: "Archived"};
+
+        // Pagination
+        const skip = (page - 1) * limit;
+
+        // Take total query
+        const total = await Dataset.countDocuments(query);
+
+        const datasets = await Dataset
+            .find(query)
+            .sort({uploadTime: sort})
+            .skip(skip)
+            .limit(limit);
+
+        res.status(200).json({
+            page,
+            totalPage: Math.ceil(total / limit),
+            totalData: total,
+            datasets
+        })
+    } catch (error) {
+        res.status(500).json({
+            message: "Error getting archived datasets",
+            error: error.message,
+        });
+    }
+}
+
+// ACTIVATE DATASET
+exports.activateDataset = async (req, res) => {
+    try {
+        // Get dataset based on id
+        const dataset = await Dataset.findById(req.params.id);
+
+        if (!dataset) {
+            return res.status(404).json({
+                message: "Dataset not found",
+            });
+        }
+
+        await dataset.updateOne({ statusDataset: "Active" });
+
+        await logActivity(
+            "ACTIVATE_DATASET",
             `Archived dataset ${dataset.originalName}`,
             req.user
         );

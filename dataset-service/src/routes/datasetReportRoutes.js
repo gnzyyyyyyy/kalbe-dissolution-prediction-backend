@@ -4,7 +4,9 @@ const router = express.Router();
 const {
     getDatasetReports,
     updateDatasetReport,
-    createDatasetReport
+    createDatasetReport,
+    reactivateDatasetReport,
+    getArchivedDatasetReports
 } = require("../controllers/datasetReportController");
 
 const uploadReport = require("../middleware/reportUploadMiddleware");
@@ -20,6 +22,10 @@ router.post(
 
 router.get("/", verifyToken, getDatasetReports);
 
+router.get("/archived", verifyToken, getArchivedDatasetReports);
+
 router.put("/archive/:id", verifyToken, updateDatasetReport);
+
+router.put("/activate/:id", verifyToken, reactivateDatasetReport);
 
 module.exports = router;

@@ -24,6 +24,8 @@ router.get("/", verifyToken, getDatasetReports);
 
 router.get("/archived", verifyToken, getArchivedDatasetReports);
 
+router.get("/archived", verifyToken, getArchivedDatasetReports);
+
 router.put("/archive/:id", verifyToken, updateDatasetReport);
 
 router.put("/activate/:id", verifyToken, reactivateDatasetReport);

@@ -18,6 +18,11 @@ const datasetReportSchema = new mongoose.Schema({
         required: true
     },
 
+    uploadedOn: {
+        type: Date,
+        required: true
+    },
+
     predictionResult: {
         type: String,
         default: "-"

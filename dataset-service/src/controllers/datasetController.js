@@ -55,6 +55,11 @@ exports.uploadDataset = async (req, res) => {
             });
         }
 
+        // Get the total number of rows
+        const totalRows = data.length;
+
+        const totalBatch = Math.ceil(totalRows / 36);
+
         const dataset = await Dataset.create({
             fileName: file.filename,
             originalName: file.originalname,
@@ -73,7 +78,8 @@ exports.uploadDataset = async (req, res) => {
 
         res.status(201).json({
             message: "File uploaded successfully",
-            dataset
+            dataset,
+            totalBatch
         });
 
     } catch (error) {

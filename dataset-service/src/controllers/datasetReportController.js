@@ -1,4 +1,5 @@
 const DatasetReport = require("../models/DatasetReport");
+const Dataset = require("../models/Dataset");
 const logActivity = require("../utils/logActivity");
 
 // CREATE DATASET REPORT
@@ -19,15 +20,34 @@ exports.createDatasetReport = async (req, res) => {
             predictionResult
         } = req.body;
 
+        // FIND DATASET
+        const dataset = await Dataset.findById(datasetId);
+
+        if (!dataset) {
+            return res.status(404).json({
+                message: "Dataset not found"
+            });
+        }
+
+        // CREATE REPORT
         const report = await DatasetReport.create({
+
             dataSetId: datasetId,
+
             predictionId,
+
             datasetName,
+
             uploadedBy: req.user.username,
+
+            // TAKE FROM DATASET TABLE
+            uploadedOn: dataset.uploadTime,
+
             predictionResult,
+
             reportCreatedBy: req.user.username,
-            reportPath:
-                `/reports/${req.file.filename}`
+
+            reportPath: `/reports/${req.file.filename}`
         });
 
         await logActivity(
@@ -52,9 +72,14 @@ exports.createDatasetReport = async (req, res) => {
 
 // GET REPORTS
 exports.getDatasetReports = async (req, res) => {
+
     try {
-        const reports = await DatasetReport.find({ statusReport: "Active" })
-            .sort({ createdAt: -1 });
+
+        const reports = await DatasetReport.find({
+            statusReport: "Active"
+        }).sort({
+            createdAt: -1
+        });
 
         res.json({
             count: reports.length,
@@ -62,6 +87,7 @@ exports.getDatasetReports = async (req, res) => {
         });
 
     } catch (error) {
+
         res.status(500).json({
             message: "Error fetching reports",
             error: error.message
@@ -71,7 +97,9 @@ exports.getDatasetReports = async (req, res) => {
 
 // ARCHIVE REPORT
 exports.updateDatasetReport = async (req, res) => {
+
     try {
+
         const report = await DatasetReport.findById(req.params.id);
 
         if (!report) {
@@ -81,6 +109,7 @@ exports.updateDatasetReport = async (req, res) => {
         }
 
         report.statusReport = "Archived";
+
         await report.save();
 
         await logActivity(
@@ -94,6 +123,68 @@ exports.updateDatasetReport = async (req, res) => {
         });
 
     } catch (error) {
+
+        res.status(500).json({
+            message: "Error updating report",
+            error: error.message
+        });
+    }
+};
+
+// GET ARCHIVED REPORTS
+exports.getArchivedDatasetReports = async (req, res) => {
+
+    try {
+
+        const reports = await DatasetReport.find({
+            statusReport: "Archived"
+        }).sort({
+            createdAt: -1
+        });
+
+        res.json({
+            count: reports.length,
+            data: reports
+        });
+
+    } catch (error) {
+
+        res.status(500).json({
+            message: "Error fetching reports",
+            error: error.message
+        });
+    }
+};
+
+// REACTIVATE REPORT
+exports.reactivateDatasetReport = async (req, res) => {
+
+    try {
+
+        const report = await DatasetReport.findById(req.params.id);
+
+        if (!report) {
+            return res.status(404).json({
+                message: "Dataset report not found"
+            });
+        }
+
+        report.statusReport = "Active";
+
+        await report.save();
+
+        await logActivity(
+            "REACTIVATE_DATASET_REPORT",
+            `Reactivate report for dataset ${report.datasetName}`,
+            req.user
+        );
+
+        res.json({
+            message: "Dataset report reactivated"
+        });
+
+    } catch (error) {
+
         res.status(500).json({
             message: "Error updating report",
             error: error.message

@@ -33,4 +33,5 @@ services:
       - ./prediction-service/.env
     volumes:
       - ./shared-uploads:/app/shared-uploads
+      - ./shared-results:/app/shared-results
       - ../thesisPython:/app/thesisPython

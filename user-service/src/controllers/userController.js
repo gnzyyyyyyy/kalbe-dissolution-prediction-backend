@@ -98,6 +98,13 @@ exports.login = async (req, res) => {
         // const password = req.body?.password;
 
         if (!username || !password) {
+            // Log activity
+            await logActivity(
+                "LOGIN_FAILED",
+                `Login failed: missing credentials (username: ${username || "unknown"})`,
+                null
+            );
+
             return res.status(400).json({ 
                 message: "Please enter all fields" 
             });
@@ -106,12 +113,30 @@ exports.login = async (req, res) => {
         const user = await User.findOne({ username });
 
         if (!user) {
+            // Log activity
+            await logActivity(
+                "LOGIN_FAILED",
+                `Login failed: username '${username}' not found`,
+                null
+            );
+
             return res.status(404).json({ 
                 message: "User not found" 
             });
         }
 
         if (user.role === "nonActive") {
+            // Log activity
+            await logActivity(
+                "LOGIN_FAILED",
+                `Login failed: user '${username}' is inactive`,
+                {
+                    id: user._id,
+                    username: user.username,
+                    role: user.role
+                }
+            );
+
             return res.status(403).json({ 
                 message: "User is not active" 
             });
@@ -120,6 +145,17 @@ exports.login = async (req, res) => {
         const valid = await bcrypt.compare(password, user.password);
 
         if (!valid) {
+            // Log activity
+            await logActivity(
+                "LOGIN_FAILED",
+                `Login failed: invalid password for '${username}'`,
+                {
+                    id: user._id,
+                    username: user.username,
+                    role: user.role
+                }
+            );
+
             return res.status(401).json({ 
                 message: "Invalid credentials" 
             });
@@ -153,6 +189,12 @@ exports.login = async (req, res) => {
         });
     } catch (error) {
         console.log("LOGIN ERROR:", error);
+
+        await logActivity(
+            "LOGIN_FAILED",
+            `Login failed: internal server error (username: ${req.body?.username || "unknown"})`,
+            null
+        );
 
         res.status(500).json({
             message: "Internal server error",

@@ -78,20 +78,23 @@ exports.runPrediction = async (req, res) => {
 
         const flaskData = flaskResponse.data;
 
-        const representativeBatch =
-            flaskData.representative_batch;
+        const overallResult =
+            flaskData.overall || [];
 
-        const representativePlot =
-            flaskData.representative_plot;
+        const overallPlot =
+            flaskData.overall_plot_path || null;
 
-        const batchSummary =
-            flaskData.batch_summary || {};
+        const perBatch =
+            flaskData.per_batch || {};
 
-        const resultTable =
-            flaskData.result_table || [];
+        const perSample =
+            flaskData.per_sample || {};
 
-        const representativeResult =
-            batchSummary[representativeBatch] || [];
+        const batchPlots =
+            flaskData.batch_plot_paths || {};
+
+        const predictionFolder =
+            flaskData.timestamp || null;
 
         /*
             STEP 7
@@ -118,13 +121,17 @@ exports.runPrediction = async (req, res) => {
 
             status: "Completed",
 
-            representativeBatch,
+            overallPlot,
 
-            representativePlot,
+            overallResult,
 
-            representativeResult,
+            batchPlots,
 
-            resultTable,
+            perBatch,
+
+            perSample,
+
+            predictionFolder,
 
             processingTime
         });

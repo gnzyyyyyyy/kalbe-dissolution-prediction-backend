@@ -28,24 +28,34 @@ const predictionSchema = new mongoose.Schema({
         default: "Processing"
     },
 
-    representativeBatch: {
-        type: String,
-        default: null
+    overallPlot: {
+    type: String,
+    default: null
     },
 
-    representativePlot: {
-        type: String,
-        default: null
-    },
-
-    representativeResult: {
+    overallResult: {
         type: Array,
         default: []
     },
 
-    resultTable: {
-        type: Array,
-        default: []
+    batchPlots: {
+        type: Object,
+        default: {}
+    },
+
+    perBatch: {
+        type: Object,
+        default: {}
+    },
+
+    perSample: {
+        type: Object,
+        default: {}
+    },
+
+    predictionFolder: {
+        type: String,
+        default: null
     },
 
     processingTime: {

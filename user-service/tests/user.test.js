@@ -42,7 +42,7 @@ describe("USER TEST", () => {
             expect(res.body.user.username).toBe("operator1");
     });
 
-    it("should get all users", async () => {
+    it("should get all active users", async () => {
         await User.create({
             userId: "U004",
             username: "testUser",
@@ -53,7 +53,24 @@ describe("USER TEST", () => {
         });
 
         const res = await request(app)
-            .get("/api/users/")
+            .get("/api/users/active")
+            .set("Authorization", `Bearer ${adminToken}`);
+
+        expect(res.statusCode).toBe(200);
+    });
+
+    it("should get all inactive users", async () => {
+        await User.create({
+            userId: "U004",
+            username: "testUser",
+            email: "test@test.com",
+            password: "123456",
+            role: "nonActive",
+            createdBy: "system"
+        });
+
+        const res = await request(app)
+            .get("/api/users/inactive")
             .set("Authorization", `Bearer ${adminToken}`);
 
         expect(res.statusCode).toBe(200);

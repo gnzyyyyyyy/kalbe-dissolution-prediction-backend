@@ -13,12 +13,26 @@ exports.register = async (req, res) => {
         let { role } = req.body;
 
         if (!username || !email || !password) {
+            // Log activity
+            await logActivity(
+                "REGISTER_FAILED",
+                `Register failed: missing credentials`,
+                req.user
+            );
+
             return res.status(400).json({ 
                 message: "Please enter all fields" 
             });
         }
 
         if (!validator.isEmail(email)) {
+            // Log activity
+            await logActivity(
+                "REGISTER_FAILED",
+                `Register failed: invalid email`,
+                req.user
+            );
+
             return res.status(400).json({ 
                 message: "Please enter a valid email" 
             });
@@ -28,6 +42,13 @@ exports.register = async (req, res) => {
 
         const existingUsername = await User.findOne({ username });
         if (existingUsername) {
+            // Log activity
+            await logActivity(
+                "REGISTER_FAILED",
+                `Register failed: username '${username}' already exists`,
+                req.user
+            );
+
             return res.status(400).json({ 
                 message: "User already exists" 
             });
@@ -35,6 +56,13 @@ exports.register = async (req, res) => {
 
         const existingEmail = await User.findOne({ email });
         if (existingEmail) {
+            // Log activity
+            await logActivity(
+                "REGISTER_FAILED",
+                `Register failed: email '${email}' already exists`,
+                req.user
+            );
+
             return res.status(400).json({ 
                 message: "Email already exists" 
             });
@@ -44,6 +72,13 @@ exports.register = async (req, res) => {
         if (role === "administrator") {
             const adminCount = await User.countDocuments({ role: "administrator" });
             if (adminCount >= 5) {
+                // Log activity
+                await logActivity(
+                    "REGISTER_FAILED",
+                    `Register failed: maximum number of administrators reached`,
+                    req.user
+                )
+
                 return res.status(403).json({ 
                     message: "Maximum number of administrators reached" 
                 });
@@ -53,6 +88,13 @@ exports.register = async (req, res) => {
         if (role === "operator") {
             const operatorCount = await User.countDocuments({ role: "operator" });
             if (operatorCount >= 15) {
+                // Log activity
+                await logActivity(
+                    "REGISTER_FAILED",
+                    `Register failed: maximum number of operators reached`,
+                    req.user
+                )
+
                 return res.status(403).json({ 
                     message: "Maximum number of operators reached" 
                 });
@@ -98,6 +140,13 @@ exports.login = async (req, res) => {
         // const password = req.body?.password;
 
         if (!username || !password) {
+            // Log activity
+            await logActivity(
+                "LOGIN_FAILED",
+                `Login failed: missing credentials (username: ${username || "unknown"})`,
+                null
+            );
+
             return res.status(400).json({ 
                 message: "Please enter all fields" 
             });
@@ -106,12 +155,30 @@ exports.login = async (req, res) => {
         const user = await User.findOne({ username });
 
         if (!user) {
+            // Log activity
+            await logActivity(
+                "LOGIN_FAILED",
+                `Login failed: username '${username}' not found`,
+                null
+            );
+
             return res.status(404).json({ 
                 message: "User not found" 
             });
         }
 
         if (user.role === "nonActive") {
+            // Log activity
+            await logActivity(
+                "LOGIN_FAILED",
+                `Login failed: user '${username}' is inactive`,
+                {
+                    id: user._id,
+                    username: user.username,
+                    role: user.role
+                }
+            );
+
             return res.status(403).json({ 
                 message: "User is not active" 
             });
@@ -120,6 +187,13 @@ exports.login = async (req, res) => {
         const valid = await bcrypt.compare(password, user.password);
 
         if (!valid) {
+            // Log activity
+            await logActivity(
+                "LOGIN_FAILED",
+                `Login failed: invalid password for '${username}'`,
+                null
+            );
+
             return res.status(401).json({ 
                 message: "Invalid credentials" 
             });
@@ -153,6 +227,12 @@ exports.login = async (req, res) => {
         });
     } catch (error) {
         console.log("LOGIN ERROR:", error);
+
+        await logActivity(
+            "LOGIN_FAILED",
+            `Login failed: internal server error (username: ${req.body?.username || "unknown"})`,
+            null
+        );
 
         res.status(500).json({
             message: "Internal server error",
@@ -241,6 +321,47 @@ exports.updateUser = async (req, res) => {
         const { id } = req.params;
         const { username, email, role } = req.body;
 
+        if (!username || !email || !role) {
+            // Log activity
+            await logActivity(
+                "UPDATE_USER_FAILED",
+                `Update user failed: missing fields`,
+                req.user
+            );
+
+            return res.status(400).json({ 
+                message: "All fields are required" 
+            });
+        }
+
+        const usernameExists = await User.findOne({ username });
+
+        if (usernameExists) {
+            await logActivity(
+                "UPDATE_USER_FAILED",
+                `Update user failed: username already exists`,
+                req.user
+            );
+
+            return res.status(400).json({
+                message: "Username already exists"
+            });
+        }
+
+        const emailExists = await User.findOne({ email });
+        if (emailExists && emailExists._id.toString() !== id) {
+            // Log activity
+            await logActivity(
+                "UPDATE_USER_FAILED",
+                `Update user failed: email already exists`,
+                req.user
+            );
+
+            return res.status(400).json({ 
+                message: "Email already exists" 
+            });
+        }
+
         const user = await User.findByIdAndUpdate(id, {
             username,
             email,
@@ -299,6 +420,12 @@ exports.deactivateUser = async (req, res) => {
 
         // Check if ID is valid
         if (!mongoose.Types.ObjectId.isValid(id)) {
+            // Log activity
+            await logActivity(
+                "DEACTIVATE_USER_FAILED",
+                `Deactivate user failed: ID is not valid`,
+                req.user
+            )
             return res.status(400).json({
                 message: "ID is not valid"
             })
@@ -317,6 +444,12 @@ exports.deactivateUser = async (req, res) => {
 
         // Check the user
         if (!user) {
+            // Log activity
+            await logActivity(
+                "DEACTIVATE_USER_FAILED",
+                `Deactivate user failed: user not found`,
+                req.user
+            )
             return res.status(404).json({
                 message: "User not found"
             })
@@ -344,6 +477,13 @@ exports.reactivateUser = async (req, res) => {
         const {id} = req.params
 
         if (!mongoose.Types.ObjectId.isValid(id)) {
+            // Log activity
+            await logActivity(
+                "REACTIVATE_USER_FAILED",
+                `Reactivate user failed: ID is not valid`,
+                req.user
+            )
+
             return res.status(400).json({
                 message: "ID is not valid"
             })
@@ -360,6 +500,13 @@ exports.reactivateUser = async (req, res) => {
         )
 
         if (!user) {
+            // Log activity
+            await logActivity(
+                "REACTIVATE_USER_FAILED",
+                `Reactivate user failed: user not found`,
+                req.user
+            )
+
             return res.status(404).json({
                 message: "User not found"
             })
@@ -390,6 +537,13 @@ exports.changePassword = async (req, res) => {
         // Check if the user exists
         const user = await User.findById(userId)
         if (!user) {
+            // Log activity
+            await logActivity(
+                "CHANGE_PASSWORD_FAILED",
+                `Change password failed: user not found`,
+                req.user
+            )
+
             return res.status(404).json({
                 message: "User not found"
             })
@@ -399,12 +553,26 @@ exports.changePassword = async (req, res) => {
         const {password} = req.body
 
         if(!password) {
+            // Log activity
+            await logActivity(
+                "CHANGE_PASSWORD_FAILED",
+                `Change password failed: password is required`,
+                req.user
+            )
+
             return res.status(400).json({
                 message: "Password is required"
             })
         }
 
         if(password.length < 8) {
+            // Log activity
+            await logActivity(
+                "CHANGE_PASSWORD_FAILED",
+                `Change password failed: password must be at least 8 characters`,
+                req.user
+            )
+
             return res.status(400).json({
                 message: "Password must be at least 8 characters"
             })

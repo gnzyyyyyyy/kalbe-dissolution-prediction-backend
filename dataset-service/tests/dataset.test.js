@@ -132,4 +132,26 @@ describe("DATASET TEST", () => {
         expect(updated.statusDataset).toBe("Archived");
 
     });
+
+    it("should activate dataset", async () => {
+        const dataset = await Dataset.create({
+            fileName: "archive.csv",
+            originalName: "archive.csv",
+            filePath: "/uploads/archive.csv",
+            fileSize: 100,
+            rowCount: 2,
+            uploadedBy: "user123",
+            uploadedByUsername: "user123"
+        });
+
+        const res = await request(app)
+            .put(`/api/datasets/activate/${dataset._id}`)
+            .set("Authorization", `Bearer ${token}`);
+
+        expect(res.statusCode).toBe(200);
+
+        const updated = await Dataset.findById(dataset._id);
+
+        expect(updated.statusDataset).toBe("Active");
+    });
 });

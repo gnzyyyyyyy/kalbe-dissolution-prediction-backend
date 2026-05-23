@@ -20,7 +20,9 @@ router.post(
     createDatasetReport
 );
 
-router.get("/", verifyToken, getDatasetReports);
+router.get("/", verifyToken, getDatasetReports); 
+
+router.get("/archived", verifyToken, getArchivedDatasetReports);
 
 router.get("/archived", verifyToken, getArchivedDatasetReports);
 

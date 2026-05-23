@@ -2,15 +2,30 @@ const axios = require("axios");
 
 const logActivity = async (action, description, user) => {
     try {
-        await axios.post(`${process.env.LOG_SERVICE_URL}/api/logs`, {
-            action,
-            description,
-            userId: user?.id || null,
-            doneBy: user?.username || null,
-            role: user?.role || "system"
-        });
+        const response = await axios.post(
+            `${process.env.LOG_SERVICE_URL}/api/logs`,
+            {
+                action,
+                description,
+                userId: user?.id || null,
+                doneBy: user?.username || "Unknown User",
+                role: user?.role || "system"
+            }
+        );
+
+        console.log("LOG SUCCESS:", response.data);
+
     } catch (error) {
-        console.log("Log service unavailable");
+
+        console.log("===== LOG ERROR =====");
+
+        if (error.response) {
+            console.log(error.response.data);
+        } else {
+            console.log(error.message);
+        }
+
+        console.log("=====================");
     }
 };
 

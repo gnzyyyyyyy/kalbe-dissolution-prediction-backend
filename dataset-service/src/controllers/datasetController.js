@@ -13,6 +13,13 @@ exports.uploadDataset = async (req, res) => {
         const file = req.file;
 
         if (!file) {
+
+            await logActivity(
+                "UPLOAD_DATASET_FAILED",
+                "Upload dataset failed: No file uploaded",
+                req.user
+            );
+            
             return res.status(400).json({
                 message: "No file uploaded"
             });
@@ -25,6 +32,12 @@ exports.uploadDataset = async (req, res) => {
             if (fs.existsSync(file.path)) {
                 fs.unlinkSync(file.path);
             }
+
+            await logActivity(
+                "UPLOAD_DATASET_FAILED",
+                `Upload dataset failed: Invalid file type (${file.originalname})`,
+                req.user
+            );
 
             return res.status(400).json({
                 message: "Invalid file type, only XLS and XLSX files are allowed"
@@ -40,6 +53,12 @@ exports.uploadDataset = async (req, res) => {
                 fs.unlinkSync(file.path);
             }
 
+            await logActivity(
+                "UPLOAD_DATASET_FAILED",
+                `Upload dataset failed: ${error.message}`,
+                req.user
+            );
+
             return res.status(400).json({
                 message: error.message
             });
@@ -49,6 +68,12 @@ exports.uploadDataset = async (req, res) => {
             if (fs.existsSync(file.path)) {
                 fs.unlinkSync(file.path);
             }
+
+            await logActivity(
+                "UPLOAD_DATASET_FAILED",
+                "Upload dataset failed: Dataset is empty or invalid",
+                req.user
+            );
 
             return res.status(400).json({
                 message: "Dataset is empty or invalid"
@@ -83,6 +108,11 @@ exports.uploadDataset = async (req, res) => {
         });
 
     } catch (error) {
+        await logActivity(
+            "UPLOAD_DATASET_FAILED",
+            `Upload dataset failed: ${error.message}`,
+            req.user
+        )
         console.log(error);
         res.status(500).json({
             message: "Error uploading dataset",
@@ -123,6 +153,11 @@ exports.getDatasets = async (req, res) => {
             datasets
         })
     } catch (error) {
+        await logActivity(
+            "GET_DATASETS_FAILED",
+            `Get datasets failed: ${error.message}`,
+            req.user
+        )
         res.status(500).json({
             message: "Error getting datasets",
             error: error.message
@@ -135,6 +170,11 @@ exports.getDatasetById = async (req, res) => {
     try{
         const dataset = await Dataset.findById(req.params.id)
         if(!dataset) {
+            await logActivity(
+                "GET_DATASET_BY_ID_FAILED",
+                `Failed to get dataset: Dataset not found with id ${req.params.id}`,
+                req.user
+            )
             return res.status(404).json({
                 message: "Dataset not found"
             })
@@ -142,6 +182,11 @@ exports.getDatasetById = async (req, res) => {
 
         res.status(200).json(dataset)
     } catch (error) {
+        await logActivity(
+            "GET_DATASET_BY_ID_FAILED",
+            `Get dataset failed: ${error.message}`,
+            req.user
+        )
         res.status(500).json({
             message: "Error getting dataset",
             error: error.message
@@ -154,6 +199,11 @@ exports.updateDataset = async (req, res) => {
     try{
         const dataset = await Dataset.findById(req.params.id)
         if(!dataset) {
+            await logActivity(
+                "UPDATE_DATASET_FAILED",
+                `Failed to update dataset: Dataset not found with id ${req.params.id}`,
+                req.user
+            )
             return res.status(404).json({
                 message: "Dataset not found"
             })
@@ -170,6 +220,11 @@ exports.updateDataset = async (req, res) => {
             message: "Dataset updated successfully"
         })
     } catch (error) {
+        await logActivity(
+            "UPDATE_DATASET_FAILED",
+            `Update dataset failed: ${error.message}`,
+            req.user
+        )
         res.status(500).json({
             message: "Error updating dataset",
             error: error.message
@@ -183,6 +238,11 @@ exports.archiveDataset = async (req, res) => {
         const dataset = await Dataset.findById(req.params.id);
 
         if (!dataset) {
+            await logActivity(
+                "ARCHIVE_DATASET_FAILED",
+                `Failed to archive dataset: Dataset not found with id ${req.params.id}`,
+                req.user
+            )
             return res.status(404).json({
                 message: "Dataset not found",
             });
@@ -200,6 +260,11 @@ exports.archiveDataset = async (req, res) => {
             message: "Dataset archived successfully",
         });
     } catch (error) {
+        await logActivity(
+            "ARCHIVE_DATASET_FAILED",
+            `Archive dataset failed: ${error.message}`,
+            req.user
+        )
         res.status(500).json({
             message: "Error archiving dataset",
             error: error.message,
@@ -239,6 +304,11 @@ exports.getArchivedDatasets = async (req, res) => {
             datasets
         })
     } catch (error) {
+        await logActivity(
+            "GET_ARCHIVED_DATASETS_FAILED",
+            `Get archived datasets failed: ${error.message}`,
+            req.user
+        )
         res.status(500).json({
             message: "Error getting archived datasets",
             error: error.message,
@@ -253,6 +323,11 @@ exports.activateDataset = async (req, res) => {
         const dataset = await Dataset.findById(req.params.id);
 
         if (!dataset) {
+            await logActivity(
+                "ACTIVATE_DATASET_FAILED",
+                `Failed to activate dataset: Dataset not found with id ${req.params.id}`,
+                req.user
+            )
             return res.status(404).json({
                 message: "Dataset not found",
             });
@@ -270,6 +345,11 @@ exports.activateDataset = async (req, res) => {
             message: "Dataset archived successfully",
         });
     } catch (error) {
+        await logActivity(
+            "ACTIVATE_DATASET_FAILED",
+            `Activate dataset failed: ${error.message}`,
+            req.user
+        )
         res.status(500).json({
             message: "Error archiving dataset",
             error: error.message,
@@ -282,6 +362,11 @@ exports.deleteDataset = async (req, res) => {
     try{
         const dataset = await Dataset.findById(req.params.id)
         if(!dataset) {
+            await logActivity(
+                "DELETE_DATASET_FAILED",
+                `Failed to delete dataset: Dataset not found with id ${req.params.id}`,
+                req.user
+            )
             return res.status(404).json({
                 message: "Dataset not found"
             })
@@ -303,6 +388,11 @@ exports.deleteDataset = async (req, res) => {
             message: "Dataset deleted successfully"
         })
     } catch (error) {
+        await logActivity(
+            "DELETE_DATASET_FAILED",
+            `Delete dataset failed: ${error.message}`,
+            req.user
+        )
         res.status(500).json({
             message: "Error deleting dataset",
             error: error.message

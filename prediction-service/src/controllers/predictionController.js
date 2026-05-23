@@ -6,7 +6,6 @@ const FormData = require("form-data");
 const Prediction = require("../models/Prediction");
 const logActivity = require("../utils/logActivity");
 
-
 // RUN PREDICTION
 exports.runPrediction = async (req, res) => {
 
@@ -16,7 +15,18 @@ exports.runPrediction = async (req, res) => {
 
         const { datasetId } = req.body;
 
+        /*
+            VALIDATE DATASET ID
+        */
+
         if (!datasetId) {
+
+            await logActivity(
+                "RUN_PREDICTION_FAILED",
+                "Prediction failed: Dataset ID is required",
+                req.user
+            );
+
             return res.status(400).json({
                 message: "Dataset ID is required"
             });
@@ -27,14 +37,31 @@ exports.runPrediction = async (req, res) => {
             GET DATASET INFORMATION
         */
 
-        const datasetResponse = await axios.get(
-            `${process.env.DATASET_SERVICE_URL}/api/datasets/${datasetId}`,
-            {
-                headers: {
-                    Authorization: req.headers.authorization
+        let datasetResponse;
+
+        try {
+
+            datasetResponse = await axios.get(
+                `${process.env.DATASET_SERVICE_URL}/api/datasets/${datasetId}`,
+                {
+                    headers: {
+                        Authorization: req.headers.authorization
+                    }
                 }
-            }
-        );
+            );
+
+        } catch (error) {
+
+            await logActivity(
+                "RUN_PREDICTION_FAILED",
+                `Prediction failed: Dataset ${datasetId} not found`,
+                req.user
+            );
+
+            return res.status(404).json({
+                message: "Dataset not found"
+            });
+        }
 
         const dataset = datasetResponse.data;
 
@@ -49,6 +76,13 @@ exports.runPrediction = async (req, res) => {
         );
 
         if (!fs.existsSync(filePath)) {
+
+            await logActivity(
+                "RUN_PREDICTION_FAILED",
+                `Prediction failed: Dataset file not found (${dataset.originalName})`,
+                req.user
+            );
+
             return res.status(404).json({
                 message: "Dataset file not found"
             });
@@ -66,15 +100,32 @@ exports.runPrediction = async (req, res) => {
             fs.createReadStream(filePath)
         );
 
-        const flaskResponse = await axios.post(
-            `${process.env.FLASK_SERVICE_URL}/predict`,
-            formData,
-            {
-                headers: formData.getHeaders(),
-                maxBodyLength: Infinity,
-                maxContentLength: Infinity
-            }
-        );
+        let flaskResponse;
+
+        try {
+
+            flaskResponse = await axios.post(
+                `${process.env.FLASK_SERVICE_URL}/predict`,
+                formData,
+                {
+                    headers: formData.getHeaders(),
+                    maxBodyLength: Infinity,
+                    maxContentLength: Infinity
+                }
+            );
+
+        } catch (error) {
+
+            await logActivity(
+                "RUN_PREDICTION_FAILED",
+                `Prediction failed: Flask prediction service error for ${dataset.originalName}`,
+                req.user
+            );
+
+            return res.status(500).json({
+                message: "Prediction service unavailable"
+            });
+        }
 
         const flaskData = flaskResponse.data;
 
@@ -135,6 +186,7 @@ exports.runPrediction = async (req, res) => {
 
             processingTime
         });
+
         /*
             STEP 9
             LOG ACTIVITY
@@ -158,6 +210,12 @@ exports.runPrediction = async (req, res) => {
 
     } catch (error) {
 
+        await logActivity(
+            "RUN_PREDICTION_FAILED",
+            `Prediction failed: ${error.message}`,
+            req.user
+        );
+
         console.log(error);
 
         res.status(500).json({
@@ -166,7 +224,6 @@ exports.runPrediction = async (req, res) => {
         });
     }
 };
-
 
 
 // GET ALL PREDICTIONS
@@ -184,13 +241,18 @@ exports.getPredictions = async (req, res) => {
 
     } catch (error) {
 
+        await logActivity(
+            "GET_PREDICTIONS_FAILED",
+            `Failed to get predictions: ${error.message}`,
+            req.user
+        );
+
         res.status(500).json({
             message: "Error getting predictions",
             error: error.message
         });
     }
 };
-
 
 
 // GET PREDICTION BY ID
@@ -202,6 +264,13 @@ exports.getPredictionById = async (req, res) => {
             await Prediction.findById(req.params.id);
 
         if (!prediction) {
+
+            await logActivity(
+                "GET_PREDICTION_BY_ID_FAILED",
+                `Prediction not found with id ${req.params.id}`,
+                req.user
+            );
+
             return res.status(404).json({
                 message: "Prediction not found"
             });
@@ -210,6 +279,12 @@ exports.getPredictionById = async (req, res) => {
         res.status(200).json(prediction);
 
     } catch (error) {
+
+        await logActivity(
+            "GET_PREDICTION_BY_ID_FAILED",
+            `Failed to get prediction: ${error.message}`,
+            req.user
+        );
 
         res.status(500).json({
             message: "Error getting prediction",

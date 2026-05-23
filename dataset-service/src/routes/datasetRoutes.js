@@ -4,13 +4,20 @@ const router = express.Router();
 const datasetController = require("../controllers/datasetController");
 const upload = require("../middleware/uploadMiddleware");
 const { verifyToken } = require("../middleware/authMiddleware");
+const logActivity = require("../utils/logActivity");
 
 router.post(
     "/upload",
     verifyToken,
     (req, res, next) => {
-        upload.single("dataset")(req, res, (err) => {
+        upload.single("dataset")(req, res, async (err) => {
             if (err) {
+
+                await logActivity(
+                    "UPLOAD_DATASET_FAILED",
+                    `Upload dataset failed: ${err.message}`,
+                    req.user
+                )
                 return res.status(400).json({
                     message: err.message
                 });
